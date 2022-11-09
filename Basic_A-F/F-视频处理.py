@@ -9,6 +9,10 @@ import time
 
 """
 
+domAddress = 'D:/everything/VideoandMusicandetc/ActionRecognition'
+labAddress = 'F:/everything_lgr/media/actrec'
+
+
 """导入模型"""
 # 导入solution
 mp_pose = mp.solutions.pose
@@ -17,8 +21,8 @@ mp_drawing = mp.solutions.drawing_utils
 # 导入模型
 pose = mp_pose.Pose(static_image_mode=False,  # 静态图片 or 连续帧视频
                     model_complexity=2,  # 人体姿态关键点检测模型，0性能差但快，2性能好但慢，1介于二者之间
-                    smooth_landmarks=True,  # 平滑关键点
-                    enable_segmentation=True,  # 人体抠图
+                    smooth_landmarks=True,  # 是否平滑关键点
+                    enable_segmentation=True,  # 是否人体抠图
                     min_detection_confidence=0.5,  # 置信度阈值
                     min_tracking_confidence=0.5)  # 各帧之间的追踪阈值
 
@@ -30,7 +34,7 @@ def process_frame(img):
     start_time = time.time()
     # 获取图像宽高
     h, w = img.shape[0], img.shape[1]
-    # BGR转RGB
+    # BGR转RGB OpenCV以BGR格式（而不是RGB）读取图像
     img_RGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     # 将RGB图像输入模型来预测结果
     results = pose.process(img_RGB)
@@ -42,9 +46,17 @@ def process_frame(img):
 
         for i in range(33):  # 遍历33个关键点
             # 获取关键点的三维坐标
-            cx = int(results.pose_landmarks.landmark[i].x * w)
-            cy = int(results.pose_landmarks.landmark[i].y * h)
-            cz = int(results.pose_landmarks.landmark[i].z)
+            # 执行姿势检测后，我们将获得三十三个地标的列表，这些地标代表图像中突出人物的身体关节位置。每个地标都有：
+            # x：它是按图像/视频宽度归一化为 [0.0， 1.0] 的地标 x 坐标。
+            # y：它是按图像/视频高度归一化为 [0.0， 1.0] 的地标 y 坐标。
+            # z：它是归一化为与 x 大致相同的比例的地标 z 坐标。通过将臀部中点处的深度作为原点来表示界标深度，并且z值越小，界标与摄影机越近。z的大小几乎与x的大小相同。
+            # 可见性：它是一个范围为 [0.0， 1.0] 的值，表示地标在图像中可见（未遮挡）的可能性。在决定是否要显示特定关节时，这是一个有用的变量，因为它可能在图像中被遮挡或部分可见。
+            x = results.pose_landmarks.landmark[i].x
+            y = results.pose_landmarks.landmark[i].y
+            z = results.pose_landmarks.landmark[i].z
+            cx = int(x * w)
+            cy = int(y * h)
+            cz = int(z)
 
             radius = 3
 
@@ -97,7 +109,7 @@ def process_frame(img):
 
 def generate_vedio(input_path, file_type='mp4'):
     file_head = input_path.split('/')[-1]
-    output_path = 'F:/everything_lgr/media/actrec-out/out-' + file_head
+    output_path = domAddress + '/out-' + file_head
 
     print('视频开始处理', input_path)
 
@@ -136,7 +148,7 @@ def generate_vedio(input_path, file_type='mp4'):
     # 进度条绑定视频总帧数
     with tqdm(total=frame_count - 1) as pbar:
         try:
-            while (cap.isOpened()):
+            while cap.isOpened():
                 success, frame = cap.read()
                 if not success:
                     break
@@ -165,7 +177,10 @@ def generate_vedio(input_path, file_type='mp4'):
 # generate_vedio(input_path='videos/585726284-1-80.flv',file_type='flv')
 # generate_vedio(input_path='videos/556758755-1-80.flv',file_type='flv')
 # generate_vedio(input_path='videos/267843079_nb2-1-80.flv',file_type='flv')
-generate_vedio(input_path='F:/everything_lgr/media/actrec/jump.mp4', file_type='mp4')
+# generate_vedio(input_path='F:/everything_lgr/media/actrec/jump.mp4', file_type='mp4')
 # generate_vedio(input_path='videos/sport2.mp4',file_type='mp4')
 # generate_vedio(input_path='videos/sport3.mp4',file_type='mp4')
 # generate_vedio(input_path='videos/mycountry.flv',file_type='flv')
+
+# generate_vedio(input_path='F:/everything_lgr/media/actrec/jump.mp4', file_type='mp4')
+generate_vedio(input_path=domAddress + '/cap.mp4', file_type='mp4')
