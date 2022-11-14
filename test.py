@@ -81,10 +81,24 @@
 # # 调用窗口关闭函数
 # clos_def()
 # a = ["A", "B", "C"]
-x = [[],[],[]]
-print(len(x))
 
-for i in range(3):
-    for j in range(3):
-        x[j].append([i, i + 1, i + 2])
-print(x)
+# x = [[],[],[]]
+# print(len(x))
+#
+# for i in range(3):
+#     for j in range(3):
+#         x[i].extend([j+1])
+# print(x)
+
+import csv
+
+filePath = 'temp.csv'
+list1 = [1, 2, 3, 4]
+list2 = [4, 2, 3, 4]
+list3 = [5, 6, 7, 4]
+list4 = [8, 2, 9, 6]
+rows = zip(list1, list2, list3, list4)
+with open(filePath, "w", newline='') as f:
+    writer = csv.writer(f)
+    for row in rows:
+        writer.writerow(row)

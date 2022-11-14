@@ -6,13 +6,21 @@ import time
 import csv
 import os
 
-pose_name = ["nose", "left_eye_inner", "left_eye", "left_eye_outer", "right_eye_inner", "right_eye", "right_eye_outer",
-             "left_ear", "right_ear", "mouth_left", "mouth_right", "left_shoulder", "right_shoulder", "left_elbow",
-             "right_elbow", "left_wrist", "right_wrist", "left_pinky", "right_pinky", "left_index", "right_index",
-             "left_thumb", "right_thumb", "left_hip", "right_hip", "left_knee", "right_knee", "left_ankle",
-             "right_ankle", "left_heel", "right_heel", "left_foot_index", "right_foot_index"]
-datatemp = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],
-            [], [], [], [], [], [], []]
+# 静止，展臂，挥臂，弯臂
+upperLimbClass = ["Static", "Unfold", "Wave", "Bend"]
+# 静止，踮脚，提膝，曲膝，跨步，跳跃，蹲起
+lowerLimbClass = ["Static", "Tiptoe", "Lift", "Bend", "Step", "Jump", "Squat"]
+# 33个骨骼点名
+poseName = ["nose", "left_eye_inner", "left_eye", "left_eye_outer", "right_eye_inner", "right_eye", "right_eye_outer",
+            "left_ear", "right_ear", "mouth_left", "mouth_right", "left_shoulder", "right_shoulder", "left_elbow",
+            "right_elbow", "left_wrist", "right_wrist", "left_pinky", "right_pinky", "left_index", "right_index",
+            "left_thumb", "right_thumb", "left_hip", "right_hip", "left_knee", "right_knee", "left_ankle",
+            "right_ankle", "left_heel", "right_heel", "left_foot_index", "right_foot_index"]
+# 暂存骨骼点数据 每三个为一个点位的数据x，y，z
+dataTemp = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],
+            [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],
+            [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],
+            [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []]
 
 """导入模型"""
 # 导入solution
@@ -28,6 +36,15 @@ pose = mp_pose.Pose(static_image_mode=False,  # 静态图片 or 连续帧视频
                     min_tracking_confidence=0.5)  # 各帧之间的追踪阈值
 
 
+# 创建保存数据文件夹的函数
+def makedir(path):
+    for i in range(len(upperLimbClass)):
+        for j in range(len(lowerLimbClass)):
+            datasetsDir = path + '/' + upperLimbClass[i] + "_" + lowerLimbClass[j]
+            if not os.path.exists(datasetsDir):
+                os.makedirs(datasetsDir)
+
+
 # 处理单帧的函数
 def process_frame(img):
     # BGR转RGB OpenCV以BGR格式（而不是RGB）读取图像
@@ -35,24 +52,24 @@ def process_frame(img):
     # 将RGB图像输入模型来预测结果
     results = pose.process(img_RGB)
     # 若检测出人体关键点
-    for i in range(len(pose_name)):
-        # 遍历33个骨骼关键点
-        if results.pose_world_landmarks:
-            # 获取关键点的三维坐标
-            wx = results.pose_world_landmarks.landmark[i].x
-            wy = results.pose_world_landmarks.landmark[i].y
-            wz = results.pose_world_landmarks.landmark[i].z
-            datatemp[i].append([wx, wy, wz])
-        else:
-            datatemp[i].append([0, 0, 0])
+    # 以一个骨骼点（x,y,z） 三个[]每一组
+    for i in range(len(poseName)):
+        value = 0
+        for n in range(3):
+            if results.pose_world_landmarks:
+                if n == 0:
+                    value = results.pose_world_landmarks.landmark[i].x
+                elif n == 1:
+                    value = results.pose_world_landmarks.landmark[i].y
+                elif n == 2:
+                    value = results.pose_world_landmarks.landmark[i].z
+            else:
+                value = 0
+            dataTemp[i * 3 + n].extend([value])
 
 
 # 保存数据的文件
 def savecsv(input_path):
-    # 获得视频名
-    videoname = input_path.split('/')[-1]
-    videoname = videoname.split('.')[0]
-
     print('视频开始处理', input_path)
     # 获取视频总帧数
     cap = cv2.VideoCapture(input_path)
@@ -63,13 +80,12 @@ def savecsv(input_path):
         if not success:
             break
     cap.release()
-    print('视频总帧数为', frame_count)
+    print('视频总帧数为', frame_count - 1)
 
     cap = cv2.VideoCapture(input_path)
-    # 创建 保存csv文件的temp
-    for i in range(len(pose_name)):
-        datatemp[i] = []
-        datatemp[i].append(["x", "y", "z"])
+    # 创建和初始化 保存csv文件的temp
+    for i in range(len(dataTemp)):
+        dataTemp[i] = []
 
     # 进度条绑定视频总帧数
     with tqdm(total=frame_count - 1) as pbar:
@@ -85,7 +101,6 @@ def savecsv(input_path):
                     pass
 
                 if success:
-                    # out.write(frame)
                     # 进度条更新一帧
                     pbar.update(1)
         except:
@@ -95,58 +110,58 @@ def savecsv(input_path):
     cv2.destroyAllWindows()
     cap.release()
 
-    # 创建视频数据保存的csv文件夹
-    filedir = csvAddress + '/' + videoname
-    if not os.path.exists(filedir):
-        os.makedirs(filedir)
+    rows = zip(dataTemp[0], dataTemp[1], dataTemp[2], dataTemp[3], dataTemp[4], dataTemp[5], dataTemp[6], dataTemp[7], dataTemp[8],
+               dataTemp[9], dataTemp[10], dataTemp[11], dataTemp[12], dataTemp[13], dataTemp[14], dataTemp[15], dataTemp[16], dataTemp[17],
+               dataTemp[18], dataTemp[19], dataTemp[20], dataTemp[21], dataTemp[22], dataTemp[23], dataTemp[24], dataTemp[25], dataTemp[26],
+               dataTemp[27], dataTemp[28], dataTemp[29], dataTemp[30], dataTemp[31], dataTemp[32], dataTemp[33], dataTemp[34], dataTemp[35],
+               dataTemp[36], dataTemp[37], dataTemp[38], dataTemp[39], dataTemp[40], dataTemp[41], dataTemp[42], dataTemp[43], dataTemp[44],
+               dataTemp[45], dataTemp[46], dataTemp[47], dataTemp[48], dataTemp[49], dataTemp[50], dataTemp[51], dataTemp[52], dataTemp[53],
+               dataTemp[54], dataTemp[55], dataTemp[56], dataTemp[57], dataTemp[58], dataTemp[59], dataTemp[60], dataTemp[61], dataTemp[62],
+               dataTemp[63], dataTemp[64], dataTemp[65], dataTemp[66], dataTemp[67], dataTemp[68], dataTemp[69], dataTemp[70], dataTemp[71],
+               dataTemp[72], dataTemp[73], dataTemp[74], dataTemp[75], dataTemp[76], dataTemp[77], dataTemp[78], dataTemp[79], dataTemp[80],
+               dataTemp[81], dataTemp[82], dataTemp[83], dataTemp[84], dataTemp[85], dataTemp[86], dataTemp[87], dataTemp[88], dataTemp[89],
+               dataTemp[90], dataTemp[91], dataTemp[92], dataTemp[93], dataTemp[94], dataTemp[95], dataTemp[96], dataTemp[97], dataTemp[98], )
 
-    # 保存所有骨骼点的数据 33个骨骼点数据
-    alldir = filedir + '/allpoints'
-    if not os.path.exists(alldir):
-        os.makedirs(alldir)
-    for i in range(len(pose_name)):
-        csvdir = alldir + '/' + pose_name[i] + ".csv"
-        with open(csvdir, 'w', newline='') as file:
-            writer = csv.writer(file)
-            for j in range(len(datatemp[i])):
-                writer.writerow(datatemp[i][j])
+    # 保存在一个文件
+    csvdir = csvAddress + actionAddress + videoName + '.csv'
+    with open(csvdir, 'w', newline='') as file:
+        writer = csv.writer(file)
+        for row in rows:
+            writer.writerow(row)
 
-    # 单独保存上肢骨骼点数据数据 仅两个点位 选取right 14，16号骨骼点
-    upperlimbdir = filedir + '/upperlimb'
-    if not os.path.exists(upperlimbdir):
-        os.makedirs(upperlimbdir)
-    for i in range(len(pose_name)):
-        if i == 14 or i == 16:
-            csvdir = upperlimbdir + '/' + pose_name[i] + ".csv"
-            with open(csvdir, 'w', newline='') as file:
-                writer = csv.writer(file)
-                for j in range(len(datatemp[i])):
-                    writer.writerow(datatemp[i][j])
-
-    # 单独保存下肢骨骼点数据数据 仅两个点位 选取right 26，28号骨骼点
-    lowerlimbdir = filedir + '/lowerlimb'
-    if not os.path.exists(lowerlimbdir):
-        os.makedirs(lowerlimbdir)
-    for i in range(len(pose_name)):
-        if i == 26 or i == 28:
-            csvdir = lowerlimbdir + '/' + pose_name[i] + ".csv"
-            with open(csvdir, 'w', newline='') as file:
-                writer = csv.writer(file)
-                for j in range(len(datatemp[i])):
-                    writer.writerow(datatemp[i][j])
+    # 分别保存所有骨骼点的数据 33个骨骼点数据
+    # alldir = fileDir + '/allpoints'
+    # if not os.path.exists(alldir):
+    #     os.makedirs(alldir)
+    # for i in range(len(poseName)):
+    #     csvdir = alldir + '/' + poseName[i] + ".csv"
+    #     with open(csvdir, 'w', newline='') as file:
+    #         writer = csv.writer(file)
+    #         for j in range(len(dataTemp[i])):
+    #             writer.writerow(dataTemp[i][j])
 
     print('数据已保存')
 
 
 # 数据集路径
-labAddress = 'F:/everything_lgr/laboratory/project/actionrecognition/datasets'
+# labAddress = 'F:/everything_lgr/laboratory/project/actionrecognition/datasets'
 # domAddress = 'D:/everything'
-
 # 视频文件夹路径
-mediaAddress = labAddress + '/media'
+# mediaAddress = labAddress + '/media'
 # csv文件夹路径
-csvAddress = labAddress + '/posecsv'
+# csvAddress = labAddress + '/posecsv'
 # 视频文件路径 需要自己指定具体视频
-videoAddress = mediaAddress + '/hiit.mp4'
-# 保存csv
+# videoAddress = mediaAddress + '/cap.mp4'
+
+# 数据集路径
+csvAddress = 'F:/everything_lgr/laboratory/project/actionrecognition/datasets/posecsv'
+# 动作组合名
+actionAddress = '/cap'
+# 视频名
+videoName = '/action_of_cap'
+# 视频路径
+videoAddress = csvAddress + actionAddress + videoName + '.mp4'
+# 创建数据集文件夹
+makedir(csvAddress)
+# 保存动作片段视频的csv
 savecsv(input_path=videoAddress)
