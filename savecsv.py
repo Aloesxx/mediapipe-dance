@@ -6,16 +6,11 @@ import time
 import csv
 import os
 
-labAddress = 'F:/everything_lgr/media/actrec'
-
-videoAddress = 'D:/everything/VideoandMusicandetc/ActionRecognition'
-csvAddress = 'D:/everything/Laboratory/code/posecsv'
 pose_name = ["nose", "left_eye_inner", "left_eye", "left_eye_outer", "right_eye_inner", "right_eye", "right_eye_outer",
              "left_ear", "right_ear", "mouth_left", "mouth_right", "left_shoulder", "right_shoulder", "left_elbow",
              "right_elbow", "left_wrist", "right_wrist", "left_pinky", "right_pinky", "left_index", "right_index",
              "left_thumb", "right_thumb", "left_hip", "right_hip", "left_knee", "right_knee", "left_ankle",
-             "right_ankle",
-             "left_heel", "right_heel", "left_foot_index", "right_foot_index"]
+             "right_ankle", "left_heel", "right_heel", "left_foot_index", "right_foot_index"]
 datatemp = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [],
             [], [], [], [], [], [], []]
 
@@ -32,22 +27,17 @@ pose = mp_pose.Pose(static_image_mode=False,  # 静态图片 or 连续帧视频
                     min_detection_confidence=0.5,  # 置信度阈值
                     min_tracking_confidence=0.5)  # 各帧之间的追踪阈值
 
-"""处理单帧的函数"""
 
-
+# 处理单帧的函数
 def process_frame(img):
-    # 记录开始处理的时间
-    # start_time = time.time()
-    # 获取图像宽高
-    # h, w = img.shape[0], img.shape[1]
-
     # BGR转RGB OpenCV以BGR格式（而不是RGB）读取图像
     img_RGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     # 将RGB图像输入模型来预测结果
     results = pose.process(img_RGB)
-
-    if results.pose_world_landmarks:  # 若检测出人体关键点
-        for i in range(len(pose_name)):  # 遍历33个关键点
+    # 若检测出人体关键点
+    if results.pose_world_landmarks:
+        # 遍历33个骨骼关键点
+        for i in range(len(pose_name)):
             # 获取关键点的三维坐标
             wx = results.pose_world_landmarks.landmark[i].x
             wy = results.pose_world_landmarks.landmark[i].y
@@ -55,14 +45,13 @@ def process_frame(img):
             datatemp[i].append([wx, wy, wz])
 
 
-"""视频逐帧处理模板   （此函数为模板函数，任何应用只需修改单帧处理函数即可）"""
-
-
-def save3d(input_path, file_type='mp4'):
+# 保存数据的文件
+def savecsv(input_path):
+    # 获得视频名
     videoname = input_path.split('/')[-1]
-    videoname = videoname.split('.')[0]  # 格式为 /xxx
-    print('视频开始处理', input_path)
+    videoname = videoname.split('.')[0]
 
+    print('视频开始处理', input_path)
     # 获取视频总帧数
     cap = cv2.VideoCapture(input_path)
     frame_count = 0
@@ -74,26 +63,8 @@ def save3d(input_path, file_type='mp4'):
     cap.release()
     print('视频总帧数为', frame_count)
 
-    # cv2.namedWindow('your name')
     cap = cv2.VideoCapture(input_path)
-    # 获取视频窗口宽、高
-    # frame_size = (cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    """
-    # fourcc意为四字符代码（Four-Character Codes），顾名思义，该编码由四个字符组成,下面是VideoWriter_fourcc对象一些常用的参数，注意：字符顺序不能弄混
-    # cv2.VideoWriter_fourcc('I', '4', '2', '0'),该参数是YUV编码类型，文件名后缀为.avi
-    # cv2.VideoWriter_fourcc('P', 'I', 'M', 'I'),该参数是MPEG-1编码类型，文件名后缀为.avi
-    # cv2.VideoWriter_fourcc('X', 'V', 'I', 'D'),该参数是MPEG-4编码类型，文件名后缀为.avi
-    # cv2.VideoWriter_fourcc('T', 'H', 'E', 'O'),该参数是Ogg Vorbis,文件名后缀为.ogv
-    # cv2.VideoWriter_fourcc('F', 'L', 'V', '1'),该参数是Flash视频，文件名后缀为.flv
-    """
-    # if file_type == 'mp4':
-    #     fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # 子豪兄是mp4的
-    # if file_type == 'flv':
-    #     fourcc = cv2.VideoWriter_fourcc('F', 'L', 'V', '1')
-
-    # fps = cap.get(cv2.CAP_PROP_FPS)
-    # out = cv2.VideoWriter(output_path, fourcc, fps, (int(frame_size[0]), int(frame_size[1])))
-
+    # 创建 保存csv文件的temp
     for i in range(len(pose_name)):
         datatemp[i] = []
         datatemp[i].append(["x", "y", "z"])
@@ -119,21 +90,61 @@ def save3d(input_path, file_type='mp4'):
             print('中途中断')
             pass
 
+    cv2.destroyAllWindows()
+    cap.release()
+
+    # 创建视频数据保存的csv文件夹
     filedir = csvAddress + '/' + videoname
     if not os.path.exists(filedir):
         os.makedirs(filedir)
 
+    # 保存所有骨骼点的数据 33个骨骼点数据
+    alldir = filedir + '/allpoints'
+    if not os.path.exists(alldir):
+        os.makedirs(alldir)
     for i in range(len(pose_name)):
-        csvdir = filedir + '/' + pose_name[i] + ".csv"
+        csvdir = alldir + '/' + pose_name[i] + ".csv"
         with open(csvdir, 'w', newline='') as file:
             writer = csv.writer(file)
             for j in range(len(datatemp[i])):
                 writer.writerow(datatemp[i][j])
 
-    cv2.destroyAllWindows()
-    # out.release()
-    cap.release()
+    # 单独保存上肢骨骼点数据数据 仅两个点位 选取right 14，16号骨骼点
+    upperlimbdir = filedir + '/upperlimb'
+    if not os.path.exists(upperlimbdir):
+        os.makedirs(upperlimbdir)
+    for i in range(len(pose_name)):
+        if i == 14 or i == 16:
+            csvdir = upperlimbdir + '/' + pose_name[i] + ".csv"
+            with open(csvdir, 'w', newline='') as file:
+                writer = csv.writer(file)
+                for j in range(len(datatemp[i])):
+                    writer.writerow(datatemp[i][j])
+
+    # 单独保存下肢骨骼点数据数据 仅两个点位 选取right 26，28号骨骼点
+    lowerlimbdir = filedir + '/lowerlimb'
+    if not os.path.exists(lowerlimbdir):
+        os.makedirs(lowerlimbdir)
+    for i in range(len(pose_name)):
+        if i == 26 or i == 28:
+            csvdir = lowerlimbdir + '/' + pose_name[i] + ".csv"
+            with open(csvdir, 'w', newline='') as file:
+                writer = csv.writer(file)
+                for j in range(len(datatemp[i])):
+                    writer.writerow(datatemp[i][j])
+
     print('数据已保存')
 
 
-save3d(input_path=videoAddress + '/cap.mp4', file_type='mp4')
+# 数据集路径
+labAddress = 'F:/everything_lgr/laboratory/project/actionrecognition/datasets'
+# domAddress = 'D:/everything'
+
+# 视频文件夹路径
+mediaAddress = labAddress + '/media'
+# csv文件夹路径
+csvAddress = labAddress + '/posecsv'
+# 视频文件路径 需要自己指定具体视频
+videoAddress = mediaAddress + '/cap.mp4'
+# 保存csv
+savecsv(input_path=videoAddress)
