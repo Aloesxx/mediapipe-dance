@@ -35,14 +35,16 @@ def process_frame(img):
     # 将RGB图像输入模型来预测结果
     results = pose.process(img_RGB)
     # 若检测出人体关键点
-    if results.pose_world_landmarks:
+    for i in range(len(pose_name)):
         # 遍历33个骨骼关键点
-        for i in range(len(pose_name)):
+        if results.pose_world_landmarks:
             # 获取关键点的三维坐标
             wx = results.pose_world_landmarks.landmark[i].x
             wy = results.pose_world_landmarks.landmark[i].y
             wz = results.pose_world_landmarks.landmark[i].z
             datatemp[i].append([wx, wy, wz])
+        else:
+            datatemp[i].append([0, 0, 0])
 
 
 # 保存数据的文件
@@ -145,6 +147,6 @@ mediaAddress = labAddress + '/media'
 # csv文件夹路径
 csvAddress = labAddress + '/posecsv'
 # 视频文件路径 需要自己指定具体视频
-videoAddress = mediaAddress + '/cap.mp4'
+videoAddress = mediaAddress + '/hiit.mp4'
 # 保存csv
 savecsv(input_path=videoAddress)
