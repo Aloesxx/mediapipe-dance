@@ -123,7 +123,8 @@ def savecsv(input_path):
                dataTemp[90], dataTemp[91], dataTemp[92], dataTemp[93], dataTemp[94], dataTemp[95], dataTemp[96], dataTemp[97], dataTemp[98], )
 
     # 保存在一个文件
-    csvdir = csvAddress + actionAddress + videoName + '.csv'
+    csvdir = input_path.split('.')[0]
+    csvdir = csvdir + '.csv'
     with open(csvdir, 'w', newline='') as file:
         writer = csv.writer(file)
         for row in rows:
@@ -144,24 +145,15 @@ def savecsv(input_path):
 
 
 # 数据集路径
-# labAddress = 'F:/everything_lgr/laboratory/project/actionrecognition/datasets'
-# domAddress = 'D:/everything'
-# 视频文件夹路径
-# mediaAddress = labAddress + '/media'
-# csv文件夹路径
-# csvAddress = labAddress + '/posecsv'
-# 视频文件路径 需要自己指定具体视频
-# videoAddress = mediaAddress + '/cap.mp4'
-
-# 数据集路径
 csvAddress = 'F:/everything_lgr/laboratory/project/actionrecognition/datasets/posecsv'
+domAddress = 'D:/everything/Laboratory/code/posecsv'
 # 动作组合名
-actionAddress = '/cap'
+actionAddress = '/Wave_Jump'
 # 视频名
-videoName = '/action_of_cap'
+videoName = '/pmla'
 # 视频路径
-videoAddress = csvAddress + actionAddress + videoName + '.mp4'
+videoAddress = domAddress + actionAddress + videoName + '.mp4'
 # 创建数据集文件夹
-makedir(csvAddress)
+makedir(domAddress)
 # 保存动作片段视频的csv
 savecsv(input_path=videoAddress)
